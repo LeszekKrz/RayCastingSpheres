@@ -1,36 +1,20 @@
-﻿
-#include "cuda_runtime.h"
+﻿#include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include "shader.hpp"
+#include "functions.hpp"
+#include "cudaFunctions.h"
 
 #include <stdio.h>
 #include <iostream>
 
-//cudaError_t addWithCuda(int *c, const int *a, const int *b, unsigned int size);
-
-//__global__ void addKernel(int *c, const int *a, const int *b)
-//{
-//    int i = threadIdx.x;
-//    c[i] = a[i] + b[i];
-//}
 
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
-
-cudaError_t fillWithCuda(char* table);
-
-__global__ void fillKernel(char* table)
-{
-    char* m_table = table + blockIdx.x * SCR_WIDTH * 3 + blockIdx.y * 3;
-    *m_table = 0;
-    *(m_table + 1) = 255;
-    *(m_table + 2) = 0;
-}
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
@@ -50,8 +34,20 @@ int main()
     unsigned char val;
     int j = 0;
 
-    fillWithCuda(table);
+    fillWithCuda(table, SCR_WIDTH, SCR_HEIGHT);
 
+    circles h_circles, d_circles;
+    h_circles.n = 10;
+    CreateCircles(&h_circles);
+    PrepareCircles(h_circles, &d_circles);
+    DisplayCircles(h_circles);
+
+    lights h_lights, d_lights;
+    h_lights.n = 3;
+    CreateLights(&h_lights);
+    PrepareLights(h_lights, &d_lights);
+    DisplayLights(h_lights);
+    
 
 
     // glfw window creation
@@ -165,88 +161,6 @@ int main()
     return 0;
 }
 
-//// Helper function for using CUDA to add vectors in parallel.
-//cudaError_t addWithCuda(int *c, const int *a, const int *b, unsigned int size)
-//{
-//    int *dev_a = 0;
-//    int *dev_b = 0;
-//    int *dev_c = 0;
-//    cudaError_t cudaStatus;
-//
-//    // Choose which GPU to run on, change this on a multi-GPU system.
-//    cudaStatus = cudaSetDevice(0);
-//    if (cudaStatus != cudaSuccess) {
-//        fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
-//        goto Error;
-//    }
-//
-//    // Allocate GPU buffers for three vectors (two input, one output)    .
-//    cudaStatus = cudaMalloc((void**)&dev_c, size * sizeof(int));
-//    if (cudaStatus != cudaSuccess) {
-//        fprintf(stderr, "cudaMalloc failed!");
-//        goto Error;
-//    }
-//
-//    cudaStatus = cudaMalloc((void**)&dev_a, size * sizeof(int));
-//    if (cudaStatus != cudaSuccess) {
-//        fprintf(stderr, "cudaMalloc failed!");
-//        goto Error;
-//    }
-//
-//    cudaStatus = cudaMalloc((void**)&dev_b, size * sizeof(int));
-//    if (cudaStatus != cudaSuccess) {
-//        fprintf(stderr, "cudaMalloc failed!");
-//        goto Error;
-//    }
-//
-//    // Copy input vectors from host memory to GPU buffers.
-//    cudaStatus = cudaMemcpy(dev_a, a, size * sizeof(int), cudaMemcpyHostToDevice);
-//    if (cudaStatus != cudaSuccess) {
-//        fprintf(stderr, "cudaMemcpy failed!");
-//        goto Error;
-//    }
-//
-//    cudaStatus = cudaMemcpy(dev_b, b, size * sizeof(int), cudaMemcpyHostToDevice);
-//    if (cudaStatus != cudaSuccess) {
-//        fprintf(stderr, "cudaMemcpy failed!");
-//        goto Error;
-//    }
-//
-//    // Launch a kernel on the GPU with one thread for each element.
-//    addKernel<<<1, size>>>(dev_c, dev_a, dev_b);
-//
-//    // Check for any errors launching the kernel
-//    cudaStatus = cudaGetLastError();
-//    if (cudaStatus != cudaSuccess) {
-//        fprintf(stderr, "addKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
-//        goto Error;
-//    }
-//    
-//    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-//    // any errors encountered during the launch.
-//    cudaStatus = cudaDeviceSynchronize();
-//    if (cudaStatus != cudaSuccess) {
-//        fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus);
-//        goto Error;
-//    }
-//
-//    // Copy output vector from GPU buffer to host memory.
-//    cudaStatus = cudaMemcpy(c, dev_c, size * sizeof(int), cudaMemcpyDeviceToHost);
-//    if (cudaStatus != cudaSuccess) {
-//        fprintf(stderr, "cudaMemcpy failed!");
-//        goto Error;
-//    }
-//
-//Error:
-//    cudaFree(dev_c);
-//    cudaFree(dev_a);
-//    cudaFree(dev_b);
-//    
-//    return cudaStatus;
-//}
-
-
-
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow* window)
@@ -265,54 +179,3 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-cudaError_t fillWithCuda(char* table)
-{
-    char* d_table;
-    cudaError_t cudaStatus;
-    int size = SCR_HEIGHT * SCR_WIDTH * 3;
-
-    cudaStatus = cudaSetDevice(0);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
-        goto Error;
-    }
-
-    cudaStatus = cudaMalloc((void**)&d_table, size);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed!");
-        goto Error;
-    }
-
-    cudaStatus = cudaMemcpy(d_table, table, size, cudaMemcpyHostToDevice);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!");
-        goto Error;
-    }
-
-
-    dim3 blocks3(SCR_HEIGHT, SCR_WIDTH, 1);
-    fillKernel << <blocks3, 1 >> > (d_table);
-
-    cudaStatus = cudaGetLastError();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "addKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
-        goto Error;
-    }
-
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus);
-        goto Error;
-    }
-
-    cudaStatus = cudaMemcpy(table, d_table, size, cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!");
-        goto Error;
-    }
-
-
-Error:
-    cudaFree(d_table);
-    return cudaStatus;
-}

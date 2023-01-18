@@ -80,10 +80,12 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="cudaFunctions.cu" />
     <CudaCompile Include="kernel.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Desktop\Libraries\glad\src\glad.c" />
+    <ClCompile Include="functions.cpp" />
     <ClCompile Include="shader.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -91,6 +93,8 @@
     <Text Include="VertexShader.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="functions.hpp" />
+    <ClInclude Include="cudaFunctions.h" />
     <ClInclude Include="shader.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
