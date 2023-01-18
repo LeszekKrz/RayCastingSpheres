@@ -6,7 +6,7 @@
 
 #include "shader.hpp"
 #include "functions.hpp"
-#include "cudaFunctions.h"
+#include "cudaFunctions.cuh"
 
 #include <stdio.h>
 #include <iostream>
@@ -19,6 +19,16 @@ const unsigned int SCR_HEIGHT = 600;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
+cudaError_t fillWithCuda(unsigned char* table, int SCR_WIDTH, int SCR_HEIGHT);
+
+__global__ void fillKernel(char* table, int width)
+{
+    char* m_table = table + blockIdx.x * width * 3 + blockIdx.y * 3;
+    *m_table = 0;
+    *(m_table + 1) = 255;
+    *(m_table + 2) = 0;
+}
+
 
 int main()
 {
@@ -29,8 +39,8 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    char* table;
-    table = (char*)malloc(SCR_HEIGHT * SCR_WIDTH * 3);
+    unsigned char* table;
+    table = (unsigned char*)malloc(SCR_HEIGHT * SCR_WIDTH * 3);
     unsigned char val;
     int j = 0;
 
@@ -75,12 +85,21 @@ int main()
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
+    //float vertices[] = {
+    //    // positions         // colors
+    //     1.0f, 1.0f, 0.0f,  1.0f, 0.0f, 0.0f, 1.0f, 1.0f,  
+    //     1.0f, -1.0f, 0.0f,  0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+    //     -1.0f,  -1.0f, 0.0f,  0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+    //     -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+
+    //};
+
     float vertices[] = {
         // positions         // colors
-         1.0f, 1.0f, 0.0f,  1.0f, 0.0f, 0.0f,  
-         1.0f, -1.0f, 0.0f,  0.0f, 1.0f, 0.0f,  
-         -1.0f,  -1.0f, 0.0f,  0.0f, 0.0f, 1.0f,
-         -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f
+         1.0f, 1.0f, 0.0f,  1.0f, 0.0f, 0.0f,  1.0f, 1.0f,
+         1.0f, -1.0f, 0.0f,  0.0f, 1.0f, 0.0f,  1.0f, 0.0f,
+         -1.0f,  -1.0f, 0.0f,  0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+         -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
 
     };
     unsigned int indices[] = {
@@ -101,12 +120,36 @@ int main()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
     // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     // color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    GLubyte* test = (GLubyte*)malloc(4 * SCR_HEIGHT * SCR_WIDTH);
+
+    for (int i = 0; i < SCR_WIDTH*SCR_HEIGHT*3; i++)
+    {
+        //*(table + i) = 120;
+        //std::cout << (int)*(table + i) << std::endl;
+        *(test + i) = 255;
+    }
+
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, table);
 
     // render loop
     // -----------
@@ -121,6 +164,9 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, table);
+
         ourShader.use();
 
         // render the triangle
@@ -133,6 +179,8 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
@@ -179,3 +227,54 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
+cudaError_t fillWithCuda(unsigned char* table, int SCR_WIDTH, int SCR_HEIGHT)
+{
+    char* d_table;
+    cudaError_t cudaStatus;
+    int size = SCR_HEIGHT * SCR_WIDTH * 3;
+
+    cudaStatus = cudaSetDevice(0);
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
+        goto Error;
+    }
+
+    cudaStatus = cudaMalloc((void**)&d_table, size);
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaMalloc failed!");
+        goto Error;
+    }
+
+    cudaStatus = cudaMemcpy(d_table, table, size, cudaMemcpyHostToDevice);
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaMemcpy failed!");
+        goto Error;
+    }
+
+
+    dim3 blocks3(SCR_HEIGHT, SCR_WIDTH, 1);
+    fillKernel << <blocks3, 1 >> > (d_table, SCR_WIDTH);
+
+    cudaStatus = cudaGetLastError();
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "addKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
+        goto Error;
+    }
+
+    cudaStatus = cudaDeviceSynchronize();
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus);
+        goto Error;
+    }
+
+    cudaStatus = cudaMemcpy(table, d_table, size, cudaMemcpyDeviceToHost);
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaMemcpy failed!");
+        goto Error;
+    }
+
+
+Error:
+    cudaFree(d_table);
+    return cudaStatus;
+}

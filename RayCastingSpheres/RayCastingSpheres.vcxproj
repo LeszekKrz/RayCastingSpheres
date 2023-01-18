@@ -80,7 +80,9 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CudaCompile Include="cudaFunctions.cu" />
+    <CudaCompile Include="cudaFunctions.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </CudaCompile>
     <CudaCompile Include="kernel.cu" />
   </ItemGroup>
   <ItemGroup>
@@ -93,8 +95,8 @@
     <Text Include="VertexShader.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cudaFunctions.cuh" />
     <ClInclude Include="functions.hpp" />
-    <ClInclude Include="cudaFunctions.h" />
     <ClInclude Include="shader.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
