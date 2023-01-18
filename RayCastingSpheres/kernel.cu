@@ -139,16 +139,6 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     //glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    GLubyte* test = (GLubyte*)malloc(4 * SCR_HEIGHT * SCR_WIDTH);
-
-    for (int i = 0; i < SCR_WIDTH*SCR_HEIGHT*3; i++)
-    {
-        //*(table + i) = 120;
-        //std::cout << (int)*(table + i) << std::endl;
-        *(test + i) = 255;
-    }
-
-
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, table);
 
     // render loop
