@@ -8,6 +8,7 @@
 
 __global__ void rayKernel(scene d_scene, unsigned char* texture)
 {
+	extern __shared__ float shared_circles;
 	int x, y = blockIdx.x;
 	x = blockIdx.y * 1024 + threadIdx.x;
 	if (y * d_scene._camera.width + x >= d_scene._camera.width * d_scene._camera.height) return;

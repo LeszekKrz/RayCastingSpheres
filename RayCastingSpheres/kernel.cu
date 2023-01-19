@@ -12,6 +12,8 @@
 #include <iostream>
 #include <cmath>
 
+#define PI 3.14159265358979323846
+
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -59,13 +61,13 @@ int main()
     fillWithCuda(h_texture, SCR_WIDTH, SCR_HEIGHT);
 
     circles h_circles, d_circles;
-    h_circles.n = 1;
+    h_circles.n = 1000;
     CreateCircles(&h_circles);
     PrepareCircles(h_circles, &d_circles);
     //DisplayCircles(h_circles);
 
     lights h_lights, d_lights;
-    h_lights.n = 1;
+    h_lights.n = 5;
     CreateLights(&h_lights);
     PrepareLights(h_lights, &d_lights);
     //DisplayLights(h_lights);
@@ -173,25 +175,17 @@ int main()
     int j = 0;
     // render loop
     // -----------
-    
      
+    float step = PI / 360;
+    float angle = 0;
 
     while (!glfwWindowShouldClose(window))
     {
         // input
         // -----
         processInput(window);
-        int x, z;
-        if (j % 2 == 0)
-        {
-            x = 0;
-            z = (j % 4 == 2) ? 200 : -200;
-        }
-        {
-            x = (j % 4 == 1) ? 200 : -200;
-            z = 0;
-        }
-        d_scene._camera.pos = make_float3(x, 0, z);
+        d_scene._camera.pos = make_float3(cos(angle) * 200, 0, sin(angle) * 200);
+        angle += step;
         PrepareCamera(&d_scene._camera);
         rayTrace(d_scene, d_texture);
         CopyTexture(&h_texture, &d_texture, size * 3, false);
