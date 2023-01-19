@@ -172,15 +172,19 @@ int main()
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, h_texture);
 
-    int j = 0;
     // render loop
     // -----------
      
     float step = PI / 360;
     float angle = 0;
 
+    double last_time = glfwGetTime();
+
     while (!glfwWindowShouldClose(window))
     {
+        double current_time = glfwGetTime();
+        std::cout << current_time - last_time << std::endl;
+        last_time = current_time;
         // input
         // -----
         processInput(window);
@@ -209,7 +213,6 @@ int main()
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
-        j++;
     }
 
     

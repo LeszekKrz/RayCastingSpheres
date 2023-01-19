@@ -17,4 +17,5 @@ __global__ void rayKernel(scene d_scene, unsigned char* texture);
 
 void rayTrace(scene d_scene, unsigned char* texture);
 __device__ __host__ bool findHit(ray light, circles d_circles, ray* out);
+__device__ __host__ bool sharedFindHit(ray light, float* xs, float* ys, float* zs, float* rs, int n, ray* out);
 __device__ __host__ unsigned int calculateColor(ray point, lights d_lights, float3 pov, int color);

@@ -8,7 +8,26 @@
 
 __global__ void rayKernel(scene d_scene, unsigned char* texture)
 {
-	extern __shared__ float shared_circles;
+	extern __shared__ float shared_circles[];
+	int n = d_scene._circles.n;
+	float* xs = shared_circles;
+	float* ys = shared_circles + n;
+	float* zs = ys + n;
+	float* rs = zs + n;
+	int j = 0, m_n = n;
+	while (m_n > 0)
+	{
+		if (threadIdx.x < m_n)
+		{
+			xs[threadIdx.x + j * 1024] = d_scene._circles.xs[threadIdx.x + j * 1024];
+			ys[threadIdx.x + j * 1024] = d_scene._circles.ys[threadIdx.x + j * 1024];
+			zs[threadIdx.x + j * 1024] = d_scene._circles.zs[threadIdx.x + j * 1024];
+			rs[threadIdx.x + j * 1024] = d_scene._circles.rs[threadIdx.x + j * 1024];
+		}
+		j++;
+		m_n -= 1024;
+	}
+	__syncthreads();
 	int x, y = blockIdx.x;
 	x = blockIdx.y * 1024 + threadIdx.x;
 	if (y * d_scene._camera.width + x >= d_scene._camera.width * d_scene._camera.height) return;
@@ -16,8 +35,8 @@ __global__ void rayKernel(scene d_scene, unsigned char* texture)
 	ray light, out;
 	light.origin = d_scene._camera.pos;
 	light.direction = normalize(d_scene._camera.lowerLeft + x * d_scene._camera.horizontalStep + y * d_scene._camera.verticalStep - light.origin);
-	//float3 aim = start + make_float3(((float)x / width) * fovW, ((float)y / height) * fovH, 0);
-	if (findHit(light, d_scene._circles, &out))
+	//if (findHit(light, d_scene._circles, &out))
+	if (sharedFindHit(light, xs, ys, zs, rs, n, &out))
 	{
 		unsigned int color = calculateColor(out, d_scene._lights, d_scene._camera.pos, 120 << 16);
 		*pixel = (color >> 16) & 255;
@@ -38,15 +57,18 @@ void rayTrace(scene d_scene, unsigned char* texture)
 	if (d_scene._camera.width > 1024)
 	{
 		dim3 dim(d_scene._camera.height, d_scene._camera.width / 1024 + 1);
-		rayKernel << < dim, 1024 >> > (d_scene, texture);
+		//rayKernel << < dim, 1024>> > (d_scene, texture);
+		rayKernel << < dim, 1024, 4 * d_scene._circles.n * sizeof(float) >> > (d_scene, texture);
 	}
 	else
 	{
-		rayKernel << < d_scene._camera.height, d_scene._camera.width >> > (d_scene, texture);
+		//rayKernel << < d_scene._camera.height, d_scene._camera.width>> > (d_scene, texture);
+		rayKernel << < d_scene._camera.height, d_scene._camera.width, 4 * d_scene._circles.n * sizeof(float) >> > (d_scene, texture);
 	}
 	cudaError_t cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus);
+		printf(cudaGetErrorString(cudaGetLastError()));
 	}
 }
 
@@ -69,6 +91,38 @@ __device__ __host__ bool findHit(ray light, circles d_circles, ray* out)
 		else
 		{
 			a = sqrt(*(d_circles.rs + i) * *(d_circles.rs + i) - d * d);
+			hit = light.origin + (t - a) * light.direction;
+			if (!hitSomething || length(hit - light.origin) < closest)
+			{
+				hitSomething = true;
+				closest = length(hit - light.origin);
+				out->origin = hit;
+				out->direction = hit - centre;
+			}
+		}
+	}
+	return hitSomething;
+}
+
+__device__ __host__ bool sharedFindHit(ray light, float* xs, float* ys, float* zs, float* rs, int n, ray* out)
+{
+	float closest = 0;
+	bool hitSomething = false;
+	float3 centre;
+	float3 hit, point;
+	float t;
+	float d;
+	float a;
+	for (int i = 0; i < n; i++)
+	{
+		centre = make_float3(*(xs + i), *(ys + i), *(zs + i));
+		t = dot(light.direction, (centre - light.origin));
+		point = light.origin + light.direction * t;
+		d = length(point - centre);
+		if (d > *(rs + i)) continue;
+		else
+		{
+			a = sqrt(*(rs + i) * *(rs + i) - d * d);
 			hit = light.origin + (t - a) * light.direction;
 			if (!hitSomething || length(hit - light.origin) < closest)
 			{
