@@ -4,6 +4,7 @@
 #include <iostream>
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include "helper_math.h"
 
 void CreateCircles(circles* h_circles)
 {
@@ -25,9 +26,9 @@ void CreateCircles(circles* h_circles)
 
 	for (int i = 0; i < n; i++)
 	{
-		*(h_circles->xs + i) = (float)(rand() % 2001 - 1000) / 10;
-		*(h_circles->ys + i) = (float)(rand() % 2001 - 1000) / 10;
-		*(h_circles->zs + i) = (float)(rand() % 2001 - 1000) / 10;
+		*(h_circles->xs + i) = (float)(rand() % 4001 - 2000) / 10;
+		*(h_circles->ys + i) = (float)(rand() % 4001 - 2000) / 10;
+		*(h_circles->zs + i) = (float)(rand() % 4001 - 2000) / 10;
 		*(h_circles->rs + i) = (float)(rand() % 101) / 10;
 	}
 
@@ -243,5 +244,18 @@ void CopyTexture(unsigned char** h_texture, unsigned char** d_texture, int size,
 Error:
 	cudaFree(*d_texture);
 
+	return;
+}
+
+void PrepareCamera(camera* h_camera)
+{
+	float3 up = make_float3(0, 1, 0);
+	float3 at = normalize(make_float3(0, 0, 0) - h_camera->pos);
+	float3 v = normalize(cross(up, at));
+	float3 u = normalize(cross(at, v));
+	float3 corner = h_camera->pos + at*100 - v * h_camera->fovH / 2 - u * h_camera->fovV / 2;
+	h_camera->lowerLeft = corner;
+	h_camera->horizontalStep = v * h_camera->fovH / h_camera->width;
+	h_camera->verticalStep = u * h_camera->fovV / h_camera->height;
 	return;
 }

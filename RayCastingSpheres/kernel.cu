@@ -10,11 +10,15 @@
 
 #include <stdio.h>
 #include <iostream>
+#include <cmath>
 
 
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
+
+const unsigned int TEX_WIDTH = 1600;
+const unsigned int TEX_HEIGHT = 1200;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
@@ -58,15 +62,23 @@ int main()
     h_circles.n = 1;
     CreateCircles(&h_circles);
     PrepareCircles(h_circles, &d_circles);
-    DisplayCircles(h_circles);
+    //DisplayCircles(h_circles);
 
     lights h_lights, d_lights;
-    h_lights.n = 3;
+    h_lights.n = 1;
     CreateLights(&h_lights);
     PrepareLights(h_lights, &d_lights);
-    DisplayLights(h_lights);
+    //DisplayLights(h_lights);
 
-    scene d_scene{ d_circles, d_lights };
+    camera h_camera;
+    h_camera.pos = make_float3(0, 0, -200);
+    h_camera.width = 800;
+    h_camera.height = 600;
+    h_camera.fovH = 80;
+    h_camera.fovV = 60;
+    PrepareCamera(&h_camera);
+
+    scene d_scene{ d_circles, d_lights, h_camera };
     
 
 
@@ -153,18 +165,36 @@ int main()
     //glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     
     CopyTexture(&h_texture, &d_texture, size * 3, true);
-    rayTrace(d_scene, SCR_WIDTH, SCR_HEIGHT, d_texture);
+    rayTrace(d_scene, d_texture);
     CopyTexture(&h_texture, &d_texture, size * 3, false);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, h_texture);
 
+    int j = 0;
     // render loop
     // -----------
+    
+     
+
     while (!glfwWindowShouldClose(window))
     {
         // input
         // -----
         processInput(window);
+        int x, z;
+        if (j % 2 == 0)
+        {
+            x = 0;
+            z = (j % 4 == 2) ? 200 : -200;
+        }
+        {
+            x = (j % 4 == 1) ? 200 : -200;
+            z = 0;
+        }
+        d_scene._camera.pos = make_float3(x, 0, z);
+        PrepareCamera(&d_scene._camera);
+        rayTrace(d_scene, d_texture);
+        CopyTexture(&h_texture, &d_texture, size * 3, false);
 
         // render
         // ------
@@ -185,6 +215,7 @@ int main()
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
+        j++;
     }
 
     
