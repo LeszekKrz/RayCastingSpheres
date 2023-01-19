@@ -31,3 +31,6 @@ void DisplayCircles(circles h_circles);
 void CreateLights(lights* h_lights);
 void PrepareLights(lights h_lights, lights* d_lights);
 void DisplayLights(lights h_lights);
+
+void PrepareTexture(unsigned char** d_texture, int size);
+void CopyTexture(unsigned char** h_texture, unsigned char** d_texture, int size, bool toDevice);

@@ -18,8 +18,9 @@ void CreateCircles(circles* h_circles)
 	{
 		*h_circles->xs = 0;
 		*h_circles->ys = 0;
-		*h_circles->zs = 40;
-		*h_circles->rs = 20;
+		*h_circles->zs = 0;
+		*h_circles->rs = 10;
+		return;
 	}
 
 	for (int i = 0; i < n; i++)
@@ -29,6 +30,8 @@ void CreateCircles(circles* h_circles)
 		*(h_circles->zs + i) = (float)(rand() % 2001 - 1000) / 10;
 		*(h_circles->rs + i) = (float)(rand() % 101) / 10;
 	}
+
+	return;
 }
 
 void PrepareCircles(circles h_circles, circles* d_circles)
@@ -47,19 +50,19 @@ void PrepareCircles(circles h_circles, circles* d_circles)
 		fprintf(stderr, "cudaMalloc failed!");
 		goto Error;
 	}
-	
+
 	cudaStatus = cudaMalloc((void**)&(d_circles->ys), n * sizeof(float));
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMalloc failed!");
 		goto Error;
 	}
-	
+
 	cudaStatus = cudaMalloc((void**)&(d_circles->zs), n * sizeof(float));
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMalloc failed!");
 		goto Error;
 	}
-	
+
 	cudaStatus = cudaMalloc((void**)&(d_circles->rs), n * sizeof(float));
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMalloc failed!");
@@ -71,24 +74,26 @@ void PrepareCircles(circles h_circles, circles* d_circles)
 		fprintf(stderr, "cudaMemcpy failed!");
 		goto Error;
 	}
-		
+
 	cudaStatus = cudaMemcpy(d_circles->ys, h_circles.ys, n * sizeof(float), cudaMemcpyHostToDevice);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMemcpy failed!");
 		goto Error;
 	}
-		
+
 	cudaStatus = cudaMemcpy(d_circles->zs, h_circles.zs, n * sizeof(float), cudaMemcpyHostToDevice);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMemcpy failed!");
 		goto Error;
 	}
-		
+
 	cudaStatus = cudaMemcpy(d_circles->rs, h_circles.rs, n * sizeof(float), cudaMemcpyHostToDevice);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMemcpy failed!");
 		goto Error;
 	}
+
+	return;
 
 
 Error:
@@ -96,6 +101,8 @@ Error:
 	cudaFree(d_circles->ys);
 	cudaFree(d_circles->zs);
 	cudaFree(d_circles->rs);
+
+	return;
 }
 
 void DisplayCircles(circles h_circles)
@@ -104,6 +111,7 @@ void DisplayCircles(circles h_circles)
 	{
 		std::cout << *(h_circles.xs + i) << " " << *(h_circles.ys + i) << " " << *(h_circles.zs + i) << " " << *(h_circles.rs + i) << std::endl;
 	}
+	return;
 }
 
 void CreateLights(lights* h_lights)
@@ -112,19 +120,29 @@ void CreateLights(lights* h_lights)
 	h_lights->xs = (float*)malloc(n * sizeof(float));
 	h_lights->ys = (float*)malloc(n * sizeof(float));
 	h_lights->zs = (float*)malloc(n * sizeof(float));
+	if (n == 1)
+	{
+		*(h_lights->xs) = 0;
+		*(h_lights->ys) = 50;
+		*(h_lights->zs) = 0;
+		return;
+
+	}
 	for (int i = 0; i < n; i++)
 	{
 		*(h_lights->xs + i) = (float)(rand() % 2001 - 1000) / 10;
 		*(h_lights->ys + i) = (float)(rand() % 2001 - 1000) / 10;
 		*(h_lights->zs + i) = (float)(rand() % 2001 - 1000) / 10;
 	}
+
+	return;
 }
 
 void PrepareLights(lights h_lights, lights* d_lights)
 {
 	int n = h_lights.n;
 	cudaError_t cudaStatus;
-	
+
 	cudaStatus = cudaMalloc((void**)&(d_lights->xs), n * sizeof(float));
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMalloc failed!");
@@ -161,12 +179,15 @@ void PrepareLights(lights h_lights, lights* d_lights)
 		goto Error;
 	}
 
+	return;
 
 
 Error:
 	cudaFree(d_lights->xs);
 	cudaFree(d_lights->ys);
 	cudaFree(d_lights->zs);
+
+	return;
 }
 
 void DisplayLights(lights h_lights)
@@ -175,4 +196,51 @@ void DisplayLights(lights h_lights)
 	{
 		std::cout << *(h_lights.xs + i) << " " << *(h_lights.ys + i) << " " << *(h_lights.zs + i) << std::endl;
 	}
+	return;
+}
+
+void PrepareTexture(unsigned char** d_texture, int size)
+{
+	cudaError_t cudaStatus;
+	cudaStatus = cudaMalloc(d_texture, size);
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMalloc failed!");
+		goto Error;
+	}
+
+	return;
+
+Error:
+	cudaFree(*d_texture);
+
+	return;
+}
+
+void CopyTexture(unsigned char** h_texture, unsigned char** d_texture, int size, bool toDevice)
+{
+	cudaError_t cudaStatus;
+	if (toDevice)
+	{
+		cudaStatus = cudaMemcpy(*d_texture, *h_texture, size * sizeof(char), cudaMemcpyHostToDevice);
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "cudaMemcpy failed!");
+			goto Error;
+		}
+	}
+	else
+	{
+		cudaStatus = cudaMemcpy(*h_texture, *d_texture, size, cudaMemcpyDeviceToHost);
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "cudaMemcpy failed!");
+			goto Error;
+		}
+
+	}
+
+	return;
+
+Error:
+	cudaFree(*d_texture);
+
+	return;
 }
