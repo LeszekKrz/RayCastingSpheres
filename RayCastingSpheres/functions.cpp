@@ -122,8 +122,8 @@ void CreateLights(lights* h_lights)
 	h_lights->zs = (float*)malloc(n * sizeof(float));
 	if (n == 1)
 	{
-		*(h_lights->xs) = 0;
-		*(h_lights->ys) = 50;
+		*(h_lights->xs) = 100;
+		*(h_lights->ys) = 0;
 		*(h_lights->zs) = 0;
 		return;
 
@@ -141,6 +141,7 @@ void CreateLights(lights* h_lights)
 void PrepareLights(lights h_lights, lights* d_lights)
 {
 	int n = h_lights.n;
+	d_lights->n = n;
 	cudaError_t cudaStatus;
 
 	cudaStatus = cudaMalloc((void**)&(d_lights->xs), n * sizeof(float));

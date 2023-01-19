@@ -55,7 +55,7 @@ int main()
     fillWithCuda(h_texture, SCR_WIDTH, SCR_HEIGHT);
 
     circles h_circles, d_circles;
-    h_circles.n = 1000;
+    h_circles.n = 1;
     CreateCircles(&h_circles);
     PrepareCircles(h_circles, &d_circles);
     DisplayCircles(h_circles);
@@ -116,6 +116,9 @@ int main()
         0, 1, 3,
         1, 2, 3
     };
+
+    unsigned char test = 1;
+    unsigned int test2 = test << 10;
 
     unsigned int VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
