@@ -183,7 +183,7 @@ int main()
     while (!glfwWindowShouldClose(window))
     {
         double current_time = glfwGetTime();
-        std::cout << current_time - last_time << std::endl;
+        std::cout << 1 / (current_time - last_time) << std::endl;
         last_time = current_time;
         // input
         // -----
