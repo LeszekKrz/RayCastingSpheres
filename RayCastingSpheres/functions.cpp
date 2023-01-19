@@ -14,6 +14,14 @@ void CreateCircles(circles* h_circles)
 	h_circles->zs = (float*)malloc(n * sizeof(float));
 	h_circles->rs = (float*)malloc(n * sizeof(float));
 
+	if (n == 1)
+	{
+		*h_circles->xs = 0;
+		*h_circles->ys = 0;
+		*h_circles->zs = 40;
+		*h_circles->rs = 20;
+	}
+
 	for (int i = 0; i < n; i++)
 	{
 		*(h_circles->xs + i) = (float)(rand() % 2001 - 1000) / 10;

@@ -84,6 +84,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </CudaCompile>
     <CudaCompile Include="kernel.cu" />
+    <CudaCompile Include="Vector.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Desktop\Libraries\glad\src\glad.c" />
@@ -98,6 +99,7 @@
     <ClInclude Include="cudaFunctions.cuh" />
     <ClInclude Include="functions.hpp" />
     <ClInclude Include="shader.hpp" />
+    <ClInclude Include="Vector.cuh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

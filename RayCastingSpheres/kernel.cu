@@ -47,7 +47,7 @@ int main()
     fillWithCuda(table, SCR_WIDTH, SCR_HEIGHT);
 
     circles h_circles, d_circles;
-    h_circles.n = 10;
+    h_circles.n = 1;
     CreateCircles(&h_circles);
     PrepareCircles(h_circles, &d_circles);
     DisplayCircles(h_circles);
@@ -57,6 +57,8 @@ int main()
     CreateLights(&h_lights);
     PrepareLights(h_lights, &d_lights);
     DisplayLights(h_lights);
+
+    scene d_scene{ d_circles, d_lights };
     
 
 
@@ -138,6 +140,8 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     //glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    
+    rayTrace(d_scene, SCR_WIDTH, SCR_HEIGHT, table);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, table);
 

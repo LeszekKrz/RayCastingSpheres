@@ -1,3 +1,5 @@
+#pragma once
+
 typedef struct
 {
 	float* xs;
@@ -14,6 +16,12 @@ typedef struct
 	float* zs;
 	int n;
 } lights;
+
+typedef struct
+{
+	circles _circles;
+	lights _lights;
+} scene;
 
 
 void CreateCircles(circles* h_circles);
