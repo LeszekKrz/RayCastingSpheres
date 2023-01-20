@@ -178,12 +178,16 @@ int main()
     float step = PI / 360;
     float angle = 0;
 
-    double last_time = glfwGetTime();
+    int j = 0;
+
+    double last_time = glfwGetTime() - 50;
+    double maxFps = 0;
 
     while (!glfwWindowShouldClose(window))
     {
         double current_time = glfwGetTime();
-        std::cout << 1 / (current_time - last_time) << std::endl;
+        //std::cout << 1 / (current_time - last_time) << std::endl;
+        if (maxFps < 1 / (current_time - last_time)) maxFps = 1 / (current_time - last_time);
         last_time = current_time;
         // input
         // -----
@@ -213,6 +217,8 @@ int main()
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
+        j++;
+        if (j == 100) std::cout << maxFps << std::endl;
     }
 
     
