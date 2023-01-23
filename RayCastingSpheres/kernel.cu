@@ -19,13 +19,10 @@
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-const unsigned int TEX_WIDTH = 1600;
-const unsigned int TEX_HEIGHT = 1200;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
-cudaError_t fillWithCuda(unsigned char* table, int SCR_WIDTH, int SCR_HEIGHT);
 
 __global__ void fillKernel(char* table, int width)
 {
@@ -58,7 +55,6 @@ int main()
     h_texture = (unsigned char*)malloc(size * 3);
     PrepareTexture(&d_texture, size * 3);
 
-    fillWithCuda(h_texture, SCR_WIDTH, SCR_HEIGHT);
 
     circles h_circles, d_circles;
     h_circles.n = 1000;
@@ -67,7 +63,7 @@ int main()
     //DisplayCircles(h_circles);
 
     lights h_lights, d_lights;
-    h_lights.n = 5;
+    h_lights.n = 1;
     CreateLights(&h_lights);
     PrepareLights(h_lights, &d_lights);
     //DisplayLights(h_lights);
@@ -81,6 +77,7 @@ int main()
     PrepareCamera(&h_camera);
 
     scene d_scene{ d_circles, d_lights, h_camera };
+    scene h_scene{ h_circles, h_lights, h_camera };
     
 
 
@@ -106,17 +103,6 @@ int main()
 
 
     Shader ourShader("VertexShader.txt", "FragmentShader.txt");
-
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
-    //float vertices[] = {
-    //    // positions         // colors
-    //     1.0f, 1.0f, 0.0f,  1.0f, 0.0f, 0.0f, 1.0f, 1.0f,  
-    //     1.0f, -1.0f, 0.0f,  0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-    //     -1.0f,  -1.0f, 0.0f,  0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-    //     -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
-
-    //};
 
     float vertices[] = {
         // positions         // colors
@@ -193,10 +179,13 @@ int main()
         // -----
         processInput(window);
         d_scene._camera.pos = make_float3(cos(angle) * 200, 0, sin(angle) * 200);
+        h_scene._camera.pos = make_float3(cos(angle) * 200, 0, sin(angle) * 200);
         angle += step;
         PrepareCamera(&d_scene._camera);
         rayTrace(d_scene, d_texture);
         CopyTexture(&h_texture, &d_texture, size * 3, false);
+
+        //rayTraceCPU(h_scene, h_texture);
 
         // render
         // ------
@@ -232,20 +221,6 @@ int main()
     // ------------------------------------------------------------------
     glfwTerminate();
 
-    //// Add vectors in parallel.
-    //cudaError_t cudaStatus = addWithCuda(c, a, b, arraySize);
-    //if (cudaStatus != cudaSuccess) {
-    //    fprintf(stderr, "addWithCuda failed!");
-    //    return 1;
-    //}
-
-    // cudaDeviceReset must be called before exiting in order for profiling and
-    // tracing tools such as Nsight and Visual Profiler to show complete traces.
-    /*cudaStatus = cudaDeviceReset();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaDeviceReset failed!");
-        return 1;
-    }*/
 
     return 0;
 }
@@ -266,69 +241,4 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
-}
-
-cudaError_t fillWithCuda(unsigned char* table, int SCR_WIDTH, int SCR_HEIGHT)
-{
-    char* d_table;
-    cudaError_t cudaStatus;
-    int size = SCR_HEIGHT * SCR_WIDTH * 3;
-
-    cudaStatus = cudaSetDevice(0);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
-        goto Error;
-    }
-
-    cudaStatus = cudaMalloc((void**)&d_table, size);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed!");
-        goto Error;
-    }
-
-    cudaStatus = cudaMemcpy(d_table, table, size, cudaMemcpyHostToDevice);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!");
-        goto Error;
-    }
-
-
-    dim3 blocks3(SCR_HEIGHT, SCR_WIDTH, 1);
-    fillKernel << <blocks3, 1 >> > (d_table, SCR_WIDTH);
-
-    cudaStatus = cudaGetLastError();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "addKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
-        goto Error;
-    }
-
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus);
-        goto Error;
-    }
-    dim3 block32(10, 400, 1);
-    fillKernel2 << <block32, 1 >> > (d_table, SCR_WIDTH);
-
-    cudaStatus = cudaGetLastError();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "addKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
-        goto Error;
-    }
-
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus);
-        goto Error;
-    }
-    cudaStatus = cudaMemcpy(table, d_table, size, cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!");
-        goto Error;
-    }
-
-
-Error:
-    cudaFree(d_table);
-    return cudaStatus;
 }

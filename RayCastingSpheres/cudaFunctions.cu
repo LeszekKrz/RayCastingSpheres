@@ -72,6 +72,35 @@ void rayTrace(scene d_scene, unsigned char* texture)
 	}
 }
 
+void rayTraceCPU(scene h_scene, unsigned char* texture)
+{
+	unsigned char* pixel;
+	ray light, out;
+	unsigned int color;
+	for (int y = 0; y < 600; y++)
+	{
+		for (int x = 0; x < 800; x++)
+		{
+			pixel = texture + (y * (int)h_scene._camera.width * 3 + x * 3);
+			light.origin = h_scene._camera.pos;
+			light.direction = normalize(h_scene._camera.lowerLeft + x * h_scene._camera.horizontalStep + y * h_scene._camera.verticalStep - light.origin);
+			if (findHit(light, h_scene._circles, &out))
+			{
+				color = calculateColor(out, h_scene._lights, h_scene._camera.pos, 120 << 16);
+				*pixel = (color >> 16) & 255;
+				*(pixel + 1) = (color >> 8) & 255;
+				*(pixel + 2) = color & 255;
+			}
+			else
+			{
+				*pixel = 0;
+				*(pixel + 1) = 0;
+				*(pixel + 2) = 0;
+			}
+		}
+	}
+}
+
 __device__ __host__ bool findHit(ray light, circles d_circles, ray* out)
 {
 	float closest = 0;
@@ -136,7 +165,7 @@ __device__ __host__ bool sharedFindHit(ray light, float* xs, float* ys, float* z
 	return hitSomething;
 }
 
-__device__ __host__ unsigned int calculateColor(ray point, lights d_lights, float3 pov, int color)
+__device__ __host__ unsigned int calculateColor(ray point, lights d_lights, float3 pos, int color)
 {
 	unsigned char r, g, b = color & 255;
 	g = (color >> 8) & 255;
@@ -147,7 +176,7 @@ __device__ __host__ unsigned int calculateColor(ray point, lights d_lights, floa
 	float kd = 0.5f, ks = 0.5f;
 	float3 L;
 	float3 N = normalize(point.direction);
-	float3 V = normalize(pov - point.origin);
+	float3 V = normalize(pos - point.origin);
 	float3 R;
 	int m = 10;
 	for (int i = 0; i < d_lights.n; i++)
