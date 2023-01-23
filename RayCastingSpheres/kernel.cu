@@ -185,12 +185,12 @@ int main()
         d_scene._camera.pos = make_float3(cos(angle) * 200, 0, sin(angle) * 200);
         h_scene._camera.pos = make_float3(cos(angle) * 200, 0, sin(angle) * 200);
         angle += step;
-        //PrepareCamera(&d_scene._camera);
-        //rayTrace(d_scene, d_texture);
-        //CopyTexture(&h_texture, &d_texture, size * 3, false);
+        PrepareCamera(&d_scene._camera);
+        rayTrace(d_scene, d_texture);
+        CopyTexture(&h_texture, &d_texture, size * 3, false);
 
         // Prepared for CPU computting
-        rayTraceCPU(h_scene, h_texture);
+        //rayTraceCPU(h_scene, h_texture);
 
         // render
         // ------
