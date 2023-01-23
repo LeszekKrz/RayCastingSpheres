@@ -50,12 +50,15 @@ int main()
 
     int size = SCR_WIDTH * SCR_HEIGHT;
 
+    // Prepare texture buffers
     unsigned char* h_texture;
     unsigned char* d_texture;
     h_texture = (unsigned char*)malloc(size * 3);
     PrepareTexture(&d_texture, size * 3);
 
 
+
+    // Generate citcles anf lights
     circles h_circles, d_circles;
     h_circles.n = 1000;
     CreateCircles(&h_circles);
@@ -63,11 +66,13 @@ int main()
     //DisplayCircles(h_circles);
 
     lights h_lights, d_lights;
-    h_lights.n = 1;
+    h_lights.n = 5;
     CreateLights(&h_lights);
     PrepareLights(h_lights, &d_lights);
     //DisplayLights(h_lights);
 
+
+    // Prepare the camera
     camera h_camera;
     h_camera.pos = make_float3(0, 0, -200);
     h_camera.width = 800;
@@ -172,20 +177,20 @@ int main()
     while (!glfwWindowShouldClose(window))
     {
         double current_time = glfwGetTime();
-        //std::cout << 1 / (current_time - last_time) << std::endl;
         if (maxFps < 1 / (current_time - last_time)) maxFps = 1 / (current_time - last_time);
         last_time = current_time;
-        // input
-        // -----
+        
+
         processInput(window);
         d_scene._camera.pos = make_float3(cos(angle) * 200, 0, sin(angle) * 200);
         h_scene._camera.pos = make_float3(cos(angle) * 200, 0, sin(angle) * 200);
         angle += step;
-        PrepareCamera(&d_scene._camera);
-        rayTrace(d_scene, d_texture);
-        CopyTexture(&h_texture, &d_texture, size * 3, false);
+        //PrepareCamera(&d_scene._camera);
+        //rayTrace(d_scene, d_texture);
+        //CopyTexture(&h_texture, &d_texture, size * 3, false);
 
-        //rayTraceCPU(h_scene, h_texture);
+        // Prepared for CPU computting
+        rayTraceCPU(h_scene, h_texture);
 
         // render
         // ------

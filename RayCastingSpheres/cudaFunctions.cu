@@ -57,12 +57,10 @@ void rayTrace(scene d_scene, unsigned char* texture)
 	if (d_scene._camera.width > 1024)
 	{
 		dim3 dim(d_scene._camera.height, d_scene._camera.width / 1024 + 1);
-		//rayKernel << < dim, 1024>> > (d_scene, texture);
 		rayKernel << < dim, 1024, 4 * d_scene._circles.n * sizeof(float) >> > (d_scene, texture);
 	}
 	else
 	{
-		//rayKernel << < d_scene._camera.height, d_scene._camera.width>> > (d_scene, texture);
 		rayKernel << < d_scene._camera.height, d_scene._camera.width, 4 * d_scene._circles.n * sizeof(float) >> > (d_scene, texture);
 	}
 	cudaError_t cudaStatus = cudaDeviceSynchronize();
